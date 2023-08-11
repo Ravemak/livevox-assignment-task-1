@@ -2,21 +2,26 @@ import boto3
 import os
 import sys
 from datetime import datetime, timedelta
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def get_asg_client():
-    return boto3.client('autoscaling', region_name='ap-south-1')
+    return boto3.client('autoscaling', region_name=os.environ.get('AWS_REGION', 'ap-south-1'))
 
 def get_ec2_client():
-    return boto3.client('ec2', region_name='ap-south-1')
+    return boto3.client('ec2', region_name=os.environ.get('AWS_REGION', 'ap-south-1'))
 
 def verify_asg(asg_name):
     asg_client = get_asg_client()
     ec2_client = get_ec2_client()
-    
+
     try:
         response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
         if not response['AutoScalingGroups']:
-            print(f"No Auto Scaling Group found with the name {asg_name}")
+            logger.error(f"No Auto Scaling Group found with the name {asg_name}")
             return
         asg = response['AutoScalingGroups'][0]
         
@@ -78,15 +83,15 @@ def verify_asg(asg_name):
         print("Terminated instances today:", terminated_instances)
     
     except Exception as e:
-        print("An error occurred:", e)
+        logger.exception("An error occurred")
 
 def main():
     if len(sys.argv) > 1:
         asg_name = sys.argv[1]
         verify_asg(asg_name)
     else:
-        print("Please pass the Auto Scaling Group name as an argument.")
-        print("Usage: ./sample-test.py asgname")
+        logger.error("Please pass the Auto Scaling Group name as an argument.")
+        logger.info("Usage: ./sample-test.py asgname")
 
 if __name__ == "__main__":
-    main()
+    main()    
